@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Auth0Web.Api.Authorization;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -23,8 +24,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("read:messages", policy => policy.Requirements.Add(new 
-    HasScopeRequirement("read:messages", domain)));
+    var scopes = builder.Configuration["Scopes"].Split(';');
+    foreach (var scope in scopes)
+    {
+        options.AddPolicy(scope, policy => policy.Requirements.Add(new HasScopeRequirement(scope, domain)));
+    }
 });
 
 builder.Services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
