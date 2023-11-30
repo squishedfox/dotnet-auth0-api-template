@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
+const string CORS_POICY = "Auth0Web.CorsPolicy";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+//
+// Setup Authentication and Authorization
 var domain = $"https://{builder.Configuration["Auth0:Domain"]}/";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -30,8 +32,22 @@ builder.Services.AddAuthorization(options =>
         options.AddPolicy(scope, policy => policy.Requirements.Add(new HasScopeRequirement(scope, domain)));
     }
 });
-
 builder.Services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
+
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CORS_POICY, corsBuilder =>
+    {
+        var allowedHosts = builder.Configuration["AllowedHosts"].Split(';');
+        foreach (var hostName in allowedHosts)
+        {
+            corsBuilder.WithOrigins(hostName)
+                .WithHeaders("Authorization")
+                .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+        }
+    });
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -51,4 +67,5 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.UseAuthorization();
 app.MapControllers();
+app.UseCors(CORS_POICY);
 app.Run();
